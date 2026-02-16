@@ -1,0 +1,82 @@
+import Chat from './models/Chat.js';
+
+const userSockets = {}; // Map to store user socket connections
+
+export const handleSocketConnection = (socket, io) => {
+  console.log(`✓ User connected: ${socket.id}`);
+
+  // Handle user join
+  socket.on('user_join', (userId) => {
+    userSockets[userId] = socket.id;
+    socket.join(userId);
+    io.emit('user_online', { userId, status: 'online' });
+  });
+
+  // Handle sending message
+  socket.on('send_message', async (data) => {
+    try {
+      const { senderId, receiverId, message } = data;
+
+      // Save message to database
+      const chatMessage = new Chat({
+        senderId,
+        receiverId,
+        message,
+        timestamp: new Date(),
+      });
+
+      await chatMessage.save();
+
+      // Emit to receiver
+      const receiverSocketId = userSockets[receiverId];
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit('receive_message', {
+          senderId,
+          message,
+          timestamp: chatMessage.timestamp,
+        });
+      }
+
+      // Emit confirmation to sender
+      socket.emit('message_sent', {
+        _id: chatMessage._id,
+        senderId,
+        message,
+        timestamp: chatMessage.timestamp,
+      });
+    } catch (error) {
+      console.error('Socket error:', error);
+      socket.emit('error', { message: 'Failed to send message' });
+    }
+  });
+
+  // Handle user disconnect
+  socket.on('disconnect', () => {
+    console.log(`✗ User disconnected: ${socket.id}`);
+    for (let userId in userSockets) {
+      if (userSockets[userId] === socket.id) {
+        delete userSockets[userId];
+        io.emit('user_offline', { userId, status: 'offline' });
+        break;
+      }
+    }
+  });
+
+  // Handle typing indicator
+  socket.on('user_typing', (data) => {
+    const { senderId, receiverId } = data;
+    const receiverSocketId = userSockets[receiverId];
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit('user_typing_status', { senderId });
+    }
+  });
+
+  // Handle stop typing
+  socket.on('user_stop_typing', (data) => {
+    const { senderId, receiverId } = data;
+    const receiverSocketId = userSockets[receiverId];
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit('user_stop_typing_status', { senderId });
+    }
+  });
+};
