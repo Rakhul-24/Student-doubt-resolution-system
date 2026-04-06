@@ -2,7 +2,10 @@ import mongoose from 'mongoose';
 import Slot from './models/Slot.js';
 import Doubt from './models/Doubt.js';
 
-mongoose.connect('mongodb://localhost:27017/student-doubt-resolution').then(async () => {
+import dotenv from 'dotenv';
+
+dotenv.config();
+mongoose.connect(process.env.MONGODB_URI).then(async () => {
     await Slot.deleteMany({});
     console.log('Deleted all old slots');
     await Doubt.deleteMany({});
