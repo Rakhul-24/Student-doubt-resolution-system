@@ -1,30 +1,62 @@
 import Slot from '../models/Slot.js';
+import Doubt from '../models/Doubt.js';
 
-export const createSlot = async (req, res) => {
+const getSlotDateTime = (date, time) => {
+  if (!date || !time) return null;
+  const normalizedTime = time.length === 5 ? `${time}:00` : time;
+  const slotDateTime = new Date(`${date}T${normalizedTime}`);
+  return Number.isNaN(slotDateTime.getTime()) ? null : slotDateTime;
+};
+
+const isSlotExpired = (date, time) => {
+  const slotDateTime = getSlotDateTime(date, time);
+  if (!slotDateTime) return true;
+  return slotDateTime <= new Date();
+};
+
+const slotHasStudent = (slot, userId) =>
+  slot.studentIds.some((studentId) => studentId.toString() === userId);
+
+export const createSlotForDoubt = async (req, res) => {
   try {
-    const { date, time, duration, topic } = req.body;
+    const { doubtId, date, time, duration, topic, notes } = req.body;
 
-    if (!date || !time) {
-      return res.status(400).json({ error: 'Date and time are required' });
+    if (!date || !time || !doubtId) {
+      return res.status(400).json({ error: 'Doubt ID, date, and time are required' });
+    }
+
+    if (isSlotExpired(date, time)) {
+      return res.status(400).json({ error: 'Slot schedule must be a future date and time' });
+    }
+
+    const doubt = await Doubt.findById(doubtId);
+    if (!doubt) {
+      return res.status(404).json({ error: 'Doubt not found' });
     }
 
     const slot = new Slot({
       staffId: req.userId,
+      studentIds: [doubt.studentId],
+      doubtId,
       date,
       time,
       duration: duration || 30,
-      topic: topic || '',
-      status: 'Available',
+      topic: topic || doubt.subject,
+      notes: notes || '',
+      status: 'Pending Student Confirmation',
     });
 
     await slot.save();
-    await slot.populate('staffId', 'name email subject');
+    
+    doubt.status = 'Slot Scheduled';
+    doubt.assignedSlotId = slot._id;
+    doubt.resolvingStaffId = req.userId;
+    await doubt.save();
 
-    res.status(201).json({
-      success: true,
-      message: 'Slot created successfully',
-      slot,
-    });
+    await slot.populate('staffId studentIds', 'name email subject');
+    if (req.app.get('io')) req.app.get('io').emit('slot_updated');
+
+    res.status(201).json({ success: true, slot });
   } catch (error) {
     console.error('Create slot error:', error);
     res.status(500).json({ error: 'Failed to create slot' });
@@ -34,7 +66,8 @@ export const createSlot = async (req, res) => {
 export const getStaffSlots = async (req, res) => {
   try {
     const slots = await Slot.find({ staffId: req.userId })
-      .populate('studentId', 'name email')
+      .populate('studentIds', 'name email')
+      .populate('doubtId')
       .sort({ date: 1, time: 1 });
 
     res.json({ success: true, slots });
@@ -44,131 +77,103 @@ export const getStaffSlots = async (req, res) => {
   }
 };
 
-export const getAvailableSlots = async (req, res) => {
-  try {
-    const slots = await Slot.find({ status: 'Available' })
-      .populate('staffId', 'name email subject')
-      .sort({ date: 1, time: 1 });
-
-    res.json({ success: true, slots });
-  } catch (error) {
-    console.error('Get available slots error:', error);
-    res.status(500).json({ error: 'Failed to fetch available slots' });
-  }
-};
-
 export const getStudentSlots = async (req, res) => {
   try {
-    const slots = await Slot.find({ studentId: req.userId })
+    const slots = await Slot.find({ studentIds: req.userId })
       .populate('staffId', 'name email subject')
+      .populate('doubtId')
       .sort({ date: 1, time: 1 });
 
     res.json({ success: true, slots });
   } catch (error) {
     console.error('Get student slots error:', error);
-    res.status(500).json({ error: 'Failed to fetch booked slots' });
+    res.status(500).json({ error: 'Failed to fetch your slots' });
   }
 };
 
-export const bookSlot = async (req, res) => {
+export const getSlotByLink = async (req, res) => {
   try {
-    const { slotId } = req.body;
+    const { linkId } = req.params;
+    const slot = await Slot.findOne({ shareableLink: linkId })
+      .populate('staffId', 'name subject avatar')
+      .populate('doubtId');
 
-    if (!slotId) {
-      return res.status(400).json({ error: 'Slot ID is required' });
-    }
-
-    const slot = await Slot.findById(slotId);
     if (!slot) {
-      return res.status(404).json({ error: 'Slot not found' });
+      return res.status(404).json({ error: 'Invalid or expired slot link' });
     }
 
-    if (slot.status === 'Booked') {
-      return res.status(400).json({ error: 'Slot is already booked' });
-    }
-
-    slot.studentId = req.userId;
-    slot.status = 'Booked';
-    await slot.save();
-    await slot.populate('staffId studentId', 'name email');
-
-    res.json({
-      success: true,
-      message: 'Slot booked successfully',
-      slot,
-    });
+    res.json({ success: true, slot });
   } catch (error) {
-    console.error('Book slot error:', error);
-    res.status(500).json({ error: 'Failed to book slot' });
+    res.status(500).json({ error: 'Failed to fetch slot details' });
   }
 };
 
-export const updateSlot = async (req, res) => {
+export const joinSlotViaLink = async (req, res) => {
+  try {
+    const { linkId } = req.params;
+    const slot = await Slot.findOne({ shareableLink: linkId });
+
+    if (!slot) return res.status(404).json({ error: 'Invalid or expired slot link' });
+
+    if (isSlotExpired(slot.date, slot.time)) {
+      return res.status(400).json({ error: 'Slot time has already passed' });
+    }
+
+    if (slotHasStudent(slot, req.userId)) {
+      return res.status(400).json({ error: 'You have already joined this session.' });
+    }
+
+    slot.studentIds.push(req.userId);
+    await slot.save();
+
+    if (req.app.get('io')) req.app.get('io').emit('slot_updated');
+    
+    await slot.populate('staffId', 'name email subject');
+    res.json({ success: true, message: 'Successfully joined session', slot });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to join slot' });
+  }
+};
+
+export const confirmSlot = async (req, res) => {
   try {
     const { slotId } = req.params;
-    const { date, time, duration, topic, status } = req.body;
-
-    const slot = await Slot.findByIdAndUpdate(
-      slotId,
-      { date, time, duration, topic, status },
-      { new: true }
-    ).populate('staffId studentId', 'name email');
-
-    if (!slot) {
-      return res.status(404).json({ error: 'Slot not found' });
+    const slot = await Slot.findById(slotId);
+    
+    if (!slot) return res.status(404).json({ error: 'Slot not found' });
+    
+    if (!slotHasStudent(slot, req.userId)) {
+       return res.status(403).json({ error: 'You are not authorized to confirm this slot.'});
     }
 
-    res.json({
-      success: true,
-      message: 'Slot updated successfully',
-      slot,
-    });
+    slot.status = 'Confirmed';
+    await slot.save();
+    if (req.app.get('io')) req.app.get('io').emit('slot_updated');
+
+    res.json({ success: true, slot });
   } catch (error) {
-    console.error('Update slot error:', error);
-    res.status(500).json({ error: 'Failed to update slot' });
+    res.status(500).json({ error: 'Failed to confirm slot' });
   }
 };
 
 export const deleteSlot = async (req, res) => {
   try {
     const { slotId } = req.params;
-
     const slot = await Slot.findByIdAndDelete(slotId);
-    if (!slot) {
-      return res.status(404).json({ error: 'Slot not found' });
+    if (!slot) return res.status(404).json({ error: 'Slot not found' });
+    
+    if (slot.doubtId) {
+       const doubt = await Doubt.findById(slot.doubtId);
+       if (doubt) {
+         doubt.status = 'Open';
+         doubt.assignedSlotId = null;
+         await doubt.save();
+       }
     }
+    if (req.app.get('io')) req.app.get('io').emit('slot_updated');
 
     res.json({ success: true, message: 'Slot deleted successfully' });
   } catch (error) {
-    console.error('Delete slot error:', error);
     res.status(500).json({ error: 'Failed to delete slot' });
-  }
-};
-
-export const cancelBooking = async (req, res) => {
-  try {
-    const { slotId } = req.params;
-
-    const slot = await Slot.findById(slotId);
-    if (!slot) {
-      return res.status(404).json({ error: 'Slot not found' });
-    }
-
-    if (slot.studentId.toString() !== req.userId) {
-      return res.status(403).json({ error: 'You can only cancel your own bookings' });
-    }
-
-    slot.studentId = null;
-    slot.status = 'Available';
-    await slot.save();
-
-    res.json({
-      success: true,
-      message: 'Booking cancelled successfully',
-      slot,
-    });
-  } catch (error) {
-    console.error('Cancel booking error:', error);
-    res.status(500).json({ error: 'Failed to cancel booking' });
   }
 };

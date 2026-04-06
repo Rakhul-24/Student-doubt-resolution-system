@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { v4 as uuidv4 } from 'uuid';
 
 const slotSchema = new mongoose.Schema(
   {
@@ -7,10 +8,14 @@ const slotSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
-    studentId: {
+    studentIds: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      default: null,
+    }],
+    doubtId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Doubt',
+      required: true,
     },
     date: {
       type: String,
@@ -26,8 +31,13 @@ const slotSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Available', 'Booked'],
-      default: 'Available',
+      enum: ['Pending Student Confirmation', 'Confirmed'],
+      default: 'Pending Student Confirmation',
+    },
+    shareableLink: {
+      type: String,
+      default: uuidv4,
+      unique: true
     },
     topic: {
       type: String,

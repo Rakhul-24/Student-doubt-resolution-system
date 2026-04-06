@@ -1,76 +1,73 @@
-import React, { useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useContext, useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { chatAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [unreadTotal, setUnreadTotal] = useState(0);
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchUnread = async () => {
+      try {
+        const res = await chatAPI.getUnreadCounts();
+        setUnreadTotal(res.data.total || 0);
+      } catch (e) {
+        console.error('Failed to fetch unread counts', e);
+      }
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 15000); // Poll every 15s
+    return () => clearInterval(interval);
+  }, [user]);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
+  const isActive = (path) => location.pathname === path ? 'active' : '';
+
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-success shadow">
-      <div className="container-fluid">
-        <Link className="navbar-brand fw-bold" to="/dashboard">
-          👨‍🏫 Staff Portal
+    <div className="floating-nav-wrapper">
+      <nav className="floating-nav">
+        <Link to="/dashboard" className="nav-brand">
+          <div className="nav-brand-icon">SP</div>
+          StaffDesk
         </Link>
-        <button
-          className="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-        >
-          <span className="navbar-toggler-icon"></span>
-        </button>
-        <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav ms-auto">
-            <li className="nav-item">
-              <Link className="nav-link" to="/dashboard">
-                Dashboard
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link className="nav-link" to="/slots">
-                Manage Slots
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link className="nav-link" to="/chat">
-                Chat
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link className="nav-link" to="/materials">
-                Materials
-              </Link>
-            </li>
-            <li className="nav-item dropdown">
-              <button
-                className="nav-link btn btn-link dropdown-toggle"
-                type="button"
-                data-bs-toggle="dropdown"
-              >
-                {user?.name || 'User'}
-              </button>
-              <ul className="dropdown-menu dropdown-menu-end">
-                <li>
-                  <button
-                    className="dropdown-item"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </button>
-                </li>
-              </ul>
-            </li>
-          </ul>
+        <div className="nav-links">
+          <Link to="/dashboard" className={`nav-link ${isActive('/dashboard')}`}>Dashboard</Link>
+          <Link to="/slots" className={`nav-link ${isActive('/slots')}`}>Doubts & Sessions</Link>
+          <Link to="/chat" className={`nav-link ${isActive('/chat')}`} style={{position: 'relative'}}>
+            Messages
+            {unreadTotal > 0 && <span className="nav-unread">{unreadTotal}</span>}
+          </Link>
+          <Link to="/materials" className={`nav-link ${isActive('/materials')}`}>Uploads</Link>
         </div>
-      </div>
-    </nav>
+        <div className="nav-user">
+          <button onClick={toggleTheme} className="theme-toggle-btn" style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', cursor: 'pointer', fontSize: '1.2rem', marginRight: '0.5rem' }}>
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+          <span style={{fontWeight: 600, color: 'var(--text-main)'}}>{user?.name || 'Staff'}</span>
+          <button onClick={handleLogout} className="logout-btn">Logout</button>
+        </div>
+      </nav>
+    </div>
   );
 };
 
 export default Navbar;
+

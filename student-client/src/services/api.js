@@ -11,7 +11,7 @@ const api = axios.create({
 
 // Add token to every request
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token') || localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -22,24 +22,46 @@ api.interceptors.request.use((config) => {
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
+  googleLogin: (data) => api.post('/auth/google', data),
+  googleRegister: (data) => api.post('/auth/google-register', data),
   getProfile: () => api.get('/auth/profile'),
   updateProfile: (data) => api.put('/auth/profile', data),
   getAllStaff: () => api.get('/auth/staff'),
+  getAllUsers: () => api.get('/auth/users'),
 };
 
 // Slot APIs
 export const slotAPI = {
-  getAvailableSlots: () => api.get('/slots/available'),
   getMySlots: () => api.get('/slots/my-slots'),
-  bookSlot: (data) => api.post('/slots/book', data),
-  cancelBooking: (slotId) => api.post(`/slots/${slotId}/cancel`),
+  getSlotByLink: (linkId) => api.get(`/slots/link/${linkId}`),
+  joinSlot: (linkId) => api.post(`/slots/join/${linkId}`),
+  confirmSlot: (slotId) => api.put(`/slots/${slotId}/confirm`),
+};
+
+// Doubt APIs
+export const doubtAPI = {
+  createDoubt: (data) => api.post('/doubts', data),
+  getMyDoubts: () => api.get('/doubts/student'),
 };
 
 // Chat APIs
 export const chatAPI = {
-  sendMessage: (data) => api.post('/chat/send', data),
+  sendMessage: (data) =>
+    api.post('/chat/send', data, data instanceof FormData ? {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    } : undefined),
   getChatHistory: (userId) => api.get(`/chat/history/${userId}`),
   getChats: () => api.get('/chat/list'),
+  getChatbotResponse: (payload) =>
+    api.post(
+      '/chat/chatbot',
+      typeof payload === 'string' ? { message: payload } : payload
+    ),
+  clearChatHistory: (userId) => api.delete(`/chat/history/${userId}`),
+  getUnreadCounts: () => api.get('/chat/unread'),
+  markAsRead: (senderId) => api.put(`/chat/read/${senderId}`),
 };
 
 // Material APIs

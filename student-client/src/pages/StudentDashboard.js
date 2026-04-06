@@ -1,122 +1,120 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { chatAPI } from '../services/api';
+
+const SlotIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+    <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+  </svg>
+);
+
+const MessageIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/>
+  </svg>
+);
+
+const ResourceIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
+    <path d="M4.5 12.5A.5.5 0 0 1 5 12h3a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 10h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm1.639-3.708 1.33.886 1.854-1.855a.25.25 0 0 1 .289-.047l1.888.974V8.5a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5V8s1.54-1.274 1.639-1.208zM6.25 6a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5z"/>
+  </svg>
+);
+
+const ViewBookingsIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/>
+    <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1z"/>
+  </svg>
+);
+
+const AiIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M6.5.5A2.5 2.5 0 0 0 4 3v.684A2.99 2.99 0 0 0 2.5 9.05V10a2.5 2.5 0 0 0 2.02 2.45A2.5 2.5 0 0 0 7 14.5h2a2.5 2.5 0 0 0 2.48-2.05A2.5 2.5 0 0 0 13.5 10v-.95A2.99 2.99 0 0 0 12 3.684V3A2.5 2.5 0 0 0 9.5.5h-3Zm0 1h3A1.5 1.5 0 0 1 11 3v1h1a2 2 0 0 1 .155 3.994L11.5 8v2a1.5 1.5 0 0 1-1.493 1.5L10 11.5h-.5v-2h-1v4H7v-4H6v2h-.5A1.5 1.5 0 0 1 4 10V8l-.655-.006A2 2 0 0 1 3.5 4H4V3a1.5 1.5 0 0 1 1.5-1.5Z"/>
+  </svg>
+);
 
 const StudentDashboard = () => {
   const { user } = useContext(AuthContext);
+  const [unreadTotal, setUnreadTotal] = useState(0);
+  const actionCards = [
+    {
+      title: 'Ask Staff',
+      description: 'Open the staff route with live-session booking already enabled for your doubt.',
+      icon: <SlotIcon />,
+      to: '/doubts/staff?tab=ask&requestSlot=1',
+    },
+    {
+      title: 'Ask AI',
+      description: 'Jump into the full AI tutor page for instant explanations and practice help.',
+      icon: <AiIcon />,
+      to: '/doubts/ai',
+    },
+    {
+      title: 'Messages',
+      description: 'Continue discussions with staff or ask quick follow-up questions.',
+      icon: <MessageIcon />,
+      to: '/chat',
+    },
+    {
+      title: 'Resources',
+      description: 'Review uploaded notes, materials, and study references.',
+      icon: <ResourceIcon />,
+      to: '/materials',
+    },
+    {
+      title: 'My Sessions',
+      description: 'Track your scheduled sessions, confirmations, and invite links in one place.',
+      icon: <ViewBookingsIcon />,
+      to: '/doubts/staff?tab=slots',
+    },
+  ];
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const res = await chatAPI.getUnreadCounts();
+        setUnreadTotal(res.data.total || 0);
+      } catch (e) {
+        console.error('Failed to fetch unread counts', e);
+      }
+    };
+    fetchUnread();
+  }, []);
 
   return (
-    <div className="container-fluid py-5 bg-light min-vh-100">
-      <div className="container">
-        {/* Welcome Section */}
-        <div className="row mb-5">
-          <div className="col-12">
-            <div className="card bg-primary text-white shadow-lg">
-              <div className="card-body p-4">
-                <h1 className="card-title mb-2">Welcome, {user?.name}! 👋</h1>
-                <p className="card-text mb-0">
-                  Ready to resolve your academic doubts? Let's get started!
-                </p>
-              </div>
-            </div>
-          </div>
+    <>
+      <div className="animated-bg">
+        <div className="blob blob-1"></div>
+        <div className="blob blob-2"></div>
+        <div className="blob blob-3"></div>
+      </div>
+      <div className="page-content">
+        <div className="dashboard-header">
+          <h1 className="dashboard-title">Welcome back, {user?.name}</h1>
+          <p className="dashboard-subtitle">Select an action below to manage your learning.</p>
         </div>
-
-        {/* Quick Actions */}
-        <div className="row g-4 mb-5">
-          <div className="col-md-6 col-lg-3">
-            <Link to="/slots" className="text-decoration-none">
-              <div className="card h-100 shadow hover-shadow" style={{ cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
-                <div className="card-body text-center">
-                  <div style={{ fontSize: '2.5rem' }} className="mb-3">📅</div>
-                  <h5 className="card-title fw-bold">Book Slots</h5>
-                  <p className="card-text text-muted small">
-                    Schedule sessions with staff
-                  </p>
-                </div>
+        
+        <div className="floating-grid">
+          {actionCards.map((card) => (
+            <Link to={card.to} key={card.title}>
+              <div className="island-card" style={{position: 'relative', height: '100%'}}>
+                {card.title === 'Messages' && unreadTotal > 0 && (
+                  <span className="nav-unread" style={{position: 'absolute', top: '1.5rem', right: '1.5rem', transform: 'scale(1.2)'}}>
+                    {unreadTotal} new
+                  </span>
+                )}
+                <div className="island-icon">{card.icon}</div>
+                <h3 className="island-title">{card.title}</h3>
+                <p className="island-desc">{card.description}</p>
               </div>
             </Link>
-          </div>
-
-          <div className="col-md-6 col-lg-3">
-            <Link to="/chat" className="text-decoration-none">
-              <div className="card h-100 shadow hover-shadow" style={{ cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
-                <div className="card-body text-center">
-                  <div style={{ fontSize: '2.5rem' }} className="mb-3">💬</div>
-                  <h5 className="card-title fw-bold">Chat</h5>
-                  <p className="card-text text-muted small">
-                    Real-time discussion with staff
-                  </p>
-                </div>
-              </div>
-            </Link>
-          </div>
-
-          <div className="col-md-6 col-lg-3">
-            <Link to="/materials" className="text-decoration-none">
-              <div className="card h-100 shadow hover-shadow" style={{ cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
-                <div className="card-body text-center">
-                  <div style={{ fontSize: '2.5rem' }} className="mb-3">📚</div>
-                  <h5 className="card-title fw-bold">Materials</h5>
-                  <p className="card-text text-muted small">
-                    Access study materials
-                  </p>
-                </div>
-              </div>
-            </Link>
-          </div>
-
-          <div className="col-md-6 col-lg-3">
-            <Link to="/slots?view=booked" className="text-decoration-none">
-              <div className="card h-100 shadow hover-shadow" style={{ cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
-                <div className="card-body text-center">
-                  <div style={{ fontSize: '2.5rem' }} className="mb-3">✅</div>
-                  <h5 className="card-title fw-bold">My Bookings</h5>
-                  <p className="card-text text-muted small">
-                    View your booked sessions
-                  </p>
-                </div>
-              </div>
-            </Link>
-          </div>
-        </div>
-
-        {/* Info Cards */}
-        <div className="row g-4">
-          <div className="col-lg-6">
-            <div className="card shadow">
-              <div className="card-header bg-info text-white fw-bold">
-                ℹ️ How to Use
-              </div>
-              <div className="card-body">
-                <ol className="mb-0">
-                  <li className="mb-2">Browse available staff slots</li>
-                  <li className="mb-2">Book a slot that suits your schedule</li>
-                  <li className="mb-2">Chat with staff in real-time</li>
-                  <li className="mb-2">Access study materials uploaded by staff</li>
-                </ol>
-              </div>
-            </div>
-          </div>
-
-          <div className="col-lg-6">
-            <div className="card shadow">
-              <div className="card-header bg-success text-white fw-bold">
-                💡 Tips
-              </div>
-              <div className="card-body">
-                <ul className="mb-0">
-                  <li className="mb-2">Book slots early to get preferred timings</li>
-                  <li className="mb-2">Prepare your questions before the session</li>
-                  <li className="mb-2">Download materials for offline access</li>
-                  <li className="mb-2">Rate and provide feedback after sessions</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

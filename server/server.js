@@ -13,6 +13,7 @@ import authRoutes from './routes/authRoutes.js';
 import slotRoutes from './routes/slotRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import materialRoutes from './routes/materialRoutes.js';
+import doubtRoutes from './routes/doubtRoutes.js';
 
 // Import Socket.io handler
 import { handleSocketConnection } from './socket.js';
@@ -31,6 +32,9 @@ const io = new Server(httpServer, {
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static('uploads'));
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/student-doubt-resolution';
@@ -53,6 +57,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/slots', slotRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/materials', materialRoutes);
+app.use('/api/doubts', doubtRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {

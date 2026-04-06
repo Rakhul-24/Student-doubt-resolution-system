@@ -11,7 +11,7 @@ const api = axios.create({
 
 // Add token to every request
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token') || localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -22,28 +22,49 @@ api.interceptors.request.use((config) => {
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
+  googleLogin: (data) => api.post('/auth/google', data),
+  googleRegister: (data) => api.post('/auth/google-register', data),
   getProfile: () => api.get('/auth/profile'),
   updateProfile: (data) => api.put('/auth/profile', data),
+  getAllStudents: () => api.get('/auth/students'),
+  getAllUsers: () => api.get('/auth/users'),
 };
 
 // Slot APIs
 export const slotAPI = {
-  createSlot: (data) => api.post('/slots/create', data),
+  createSlotForDoubt: (data) => api.post('/slots/create-for-doubt', data),
   getMySlots: () => api.get('/slots/staff'),
-  updateSlot: (slotId, data) => api.put(`/slots/${slotId}`, data),
   deleteSlot: (slotId) => api.delete(`/slots/${slotId}`),
+};
+
+// Doubt APIs
+export const doubtAPI = {
+  getStaffDoubts: () => api.get('/doubts/staff'),
+  updateDoubtStatus: (doubtId, data) => api.put(`/doubts/${doubtId}`, data),
 };
 
 // Chat APIs
 export const chatAPI = {
-  sendMessage: (data) => api.post('/chat/send', data),
+  sendMessage: (data) =>
+    api.post('/chat/send', data, data instanceof FormData ? {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    } : undefined),
   getChatHistory: (userId) => api.get(`/chat/history/${userId}`),
   getChats: () => api.get('/chat/list'),
+  clearChatHistory: (userId) => api.delete(`/chat/history/${userId}`),
+  getUnreadCounts: () => api.get('/chat/unread'),
+  markAsRead: (senderId) => api.put(`/chat/read/${senderId}`),
 };
 
 // Material APIs
 export const materialAPI = {
-  uploadMaterial: (data) => api.post('/materials/upload', data),
+  uploadMaterial: (data) => api.post('/materials/upload', data, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
   getAllMaterials: () => api.get('/materials'),
   getMyMaterials: () => api.get('/materials/staff'),
   updateMaterial: (materialId, data) => api.put(`/materials/${materialId}`, data),

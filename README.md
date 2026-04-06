@@ -4,13 +4,14 @@ A complete full-stack application for resolving student academic doubts through 
 
 ## 🎯 Features
 
-- **Authentication**: JWT-based secure authentication with role-based access (Student/Staff)
+- **Authentication**: JWT-based secure authentication and **Google OAuth integration** with role-based access (Student/Staff)
 - **Slot Booking**: Students can book available time slots with staff
-- **Real-time Chat**: Socket.io powered real-time messaging between students and staff
-- **Study Materials**: Staff can upload and students can download study materials
-- **Dashboard**: Role-specific dashboards for both students and staff
+- **Real-time Chat**: Socket.io powered real-time messaging between students and staff, complete with **unread message notifications** and **file attachments**
+- **AI Chatbot**: Intelligent chatbot powered by **Google Gemini AI** for instant doubt resolution featuring **Markdown Rendering**
+- **Study Materials**: Staff can upload and students can download study materials. Staff portal also allows viewing uploaded resources.
+- **Premium Dashboards**: Role-specific, beautifully designed dashboards for both students and staff
 - **Material Management**: Organize materials by subject and topic
-- **Professional UI**: Bootstrap 5 responsive design
+- **Professional UI**: Bootstrap 5 responsive design with premium aesthetics
 
 ## 📁 Project Structure
 
@@ -18,22 +19,9 @@ A complete full-stack application for resolving student academic doubts through 
 Student Doubt Resolution/
 ├── server/                          # Backend (Node.js + Express)
 │   ├── controllers/
-│   │   ├── authController.js
-│   │   ├── slotController.js
-│   │   ├── chatController.js
-│   │   └── materialController.js
 │   ├── models/
-│   │   ├── User.js
-│   │   ├── Slot.js
-│   │   ├── Chat.js
-│   │   └── Material.js
 │   ├── routes/
-│   │   ├── authRoutes.js
-│   │   ├── slotRoutes.js
-│   │   ├── chatRoutes.js
-│   │   └── materialRoutes.js
 │   ├── middleware/
-│   │   └── authMiddleware.js
 │   ├── socket.js
 │   ├── server.js
 │   ├── .env
@@ -42,45 +30,21 @@ Student Doubt Resolution/
 ├── student-client/                  # Student Portal (React)
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Navbar.js
-│   │   │   └── PrivateRoute.js
 │   │   ├── context/
-│   │   │   └── AuthContext.js
 │   │   ├── pages/
-│   │   │   ├── StudentLogin.js
-│   │   │   ├── StudentRegister.js
-│   │   │   ├── StudentDashboard.js
-│   │   │   ├── SlotBookingPage.js
-│   │   │   ├── ChatPage.js
-│   │   │   └── MaterialsPage.js
 │   │   ├── services/
-│   │   │   └── api.js
 │   │   ├── App.js
 │   │   └── index.js
-│   ├── public/
-│   │   └── index.html
 │   └── package.json
 │
 └── staff-client/                    # Staff Portal (React)
     ├── src/
     │   ├── components/
-    │   │   ├── Navbar.js
-    │   │   └── PrivateRoute.js
     │   ├── context/
-    │   │   └── AuthContext.js
     │   ├── pages/
-    │   │   ├── StaffLogin.js
-    │   │   ├── StaffRegister.js
-    │   │   ├── StaffDashboard.js
-    │   │   ├── SlotManagementPage.js
-    │   │   ├── ChatPage.js
-    │   │   └── MaterialsUploadPage.js
     │   ├── services/
-    │   │   └── api.js
     │   ├── App.js
     │   └── index.js
-    ├── public/
-    │   └── index.html
     └── package.json
 ```
 
@@ -94,6 +58,8 @@ Student Doubt Resolution/
 - **JWT** - Authentication
 - **Bcrypt** - Password hashing
 - **Socket.io** - Real-time communication
+- **Google Generative AI** - AI capabilities
+- **Multer** - File uploads
 - **CORS** - Cross-origin requests
 
 ### Frontend
@@ -102,6 +68,8 @@ Student Doubt Resolution/
 - **Axios** - HTTP client
 - **Bootstrap 5** - Styling
 - **Socket.io Client** - Real-time messaging
+- **Google OAuth** - Authentication (`@react-oauth/google`)
+- **React Markdown** - Rich text rendering for AI responses
 - **Context API** - State management
 
 ## ⚙️ Prerequisites
@@ -123,7 +91,15 @@ mongod
 
 Or create a MongoDB Atlas cluster and get your connection string.
 
-### Step 2: Backend Setup
+### Step 2: Setup Google Gemini API Key
+
+The application includes an AI chatbot powered by Google Gemini AI.
+
+1. Sign up for Google AI Studio at [https://aistudio.google.com/](https://aistudio.google.com/)
+2. Navigate to Get API Key and create a new key.
+3. Copy the API key and add it to the `.env` file in the server directory as `GOOGLE_API_KEY`.
+
+### Step 3: Backend Setup
 
 ```bash
 # Navigate to server directory
@@ -132,11 +108,12 @@ cd server
 # Install dependencies
 npm install
 
-# Create .env file (already provided with defaults)
+# Create .env file
 # Edit .env if needed:
 # MONGODB_URI=mongodb://localhost:27017/student-doubt-resolution
 # JWT_SECRET=your_jwt_secret_key_change_in_production_12345
 # PORT=5000
+# GOOGLE_API_KEY=your_gemini_api_key_here
 
 # Start the backend server
 npm start
@@ -147,7 +124,7 @@ nodemon server.js
 
 Backend will run on: **http://localhost:5000**
 
-### Step 3: Student Portal Setup
+### Step 4: Student Portal Setup
 
 Open a new terminal:
 
@@ -164,7 +141,7 @@ npm start
 
 Student Portal will open at: **http://localhost:3000**
 
-### Step 4: Staff Portal Setup
+### Step 5: Staff Portal Setup
 
 Open another new terminal:
 
@@ -185,25 +162,25 @@ Staff Portal will open at: **http://localhost:3001**
 
 ### For Students
 
-1. **Register**: Go to student portal → Click "Register here" → Fill details
-2. **Login**: Enter credentials with role as "Student"
+1. **Register**: Go to student portal → Click "Register here" or Use Google Sign-in → Fill details
+2. **Login**: Enter credentials with role as "Student" or Use Google Sign-in
 3. **Dashboard**: View quick actions and available features
 4. **Book Slots**: Browse available staff slots and book one
-5. **Chat**: Select a staff member and chat in real-time
+5. **Chat**: Select a staff member, verify **unread notifications**, send messages and attachments, or talk to the **AI Chatbot**
 6. **Materials**: View and download study materials by subject
 
 ### For Staff
 
-1. **Register**: Go to staff portal → Click "Register here" → Fill details including subject specialty
-2. **Login**: Enter credentials with role as "Staff"
+1. **Register**: Go to staff portal → Click "Register here" or Use Google Sign-in → Fill details including subject specialty
+2. **Login**: Enter credentials with role as "Staff" or Use Google Sign-in
 3. **Dashboard**: View profile and quick actions
 4. **Manage Slots**: Create time slots for students to book
-5. **Chat**: View list of students and chat with them
-6. **Materials**: Upload study materials for students
+5. **Chat**: View list of students, check **unread messages badge**, and chat with them in real-time
+6. **Materials**: Upload study materials for students and preview uploaded resources
 
 ## 🔐 Authentication
 
-- **Login**: Email + Password authentication
+- **Login**: Email + Password authentication / Google OAuth integration
 - **Token Storage**: JWT stored in localStorage
 - **Auto-logout**: Clear localStorage on logout
 - **Protected Routes**: All authenticated pages require valid token
@@ -213,6 +190,7 @@ Staff Portal will open at: **http://localhost:3001**
 ### Authentication
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - Login user
+- `POST /api/auth/google` - Google authentication
 - `GET /api/auth/profile` - Get user profile
 - `PUT /api/auth/profile` - Update profile
 - `GET /api/auth/staff` - Get all staff members
@@ -227,10 +205,13 @@ Staff Portal will open at: **http://localhost:3001**
 - `PUT /api/slots/:slotId` - Update slot
 - `DELETE /api/slots/:slotId` - Delete slot
 
-### Chat
-- `POST /api/chat/send` - Send message
+### Chat & AI
+- `POST /api/chat/send` - Send message (with attachments)
 - `GET /api/chat/history/:userId` - Get chat history
 - `GET /api/chat/list` - Get chat users list
+- `GET /api/chat/unread` - Get unread message counts
+- `PUT /api/chat/mark-read/:senderId` - Mark messages as read
+- `POST /api/chat/bot/response` - Get AI response
 
 ### Materials
 - `POST /api/materials/upload` - Upload material (Staff)
@@ -247,6 +228,7 @@ Staff Portal will open at: **http://localhost:3001**
 4. Backend saves to MongoDB
 5. Receiver gets `receive_message` event
 6. Sender gets `message_sent` confirmation
+7. Unread counts dynamically update via Socket Events & Polling
 
 ## 📦 Database Models
 
@@ -286,6 +268,13 @@ Staff Portal will open at: **http://localhost:3001**
   senderId: ObjectId,
   receiverId: ObjectId,
   message: String,
+  attachment: {
+    fileUrl: String,
+    fileName: String,
+    fileType: String,
+    mimeType: String,
+    fileSize: Number
+  },
   timestamp: Date,
   read: Boolean,
   timestamps
@@ -310,8 +299,10 @@ Staff Portal will open at: **http://localhost:3001**
 ## 🎨 UI Features
 
 - **Responsive Design**: Works on mobile, tablet, and desktop
-- **Bootstrap 5**: Professional styling without custom CSS
+- **Premium Aesthetics**: High-end dashboard and UI components
+- **Bootstrap 5**: Professional styling
 - **Loading States**: Spinners during API calls
+- **Markdown AI Render**: Clear and formatted chat responses from AI
 - **Error Handling**: Toast alerts for user feedback
 - **Empty States**: Helpful messages when no data
 - **Card Layout**: Clean, organized content presentation
@@ -335,22 +326,12 @@ Solution:
 2. Or use different port: PORT=3002 npm start
 ```
 
-### Socket.io Connection Failed
+### Google Generative AI Error
 ```
-Error: WebSocket connection failed
+Error: Google API key not configured or Quota Exceeded
 Solution:
-1. Ensure backend is running on port 5000
-2. Check CORS configuration in server.js
-3. Verify firewall isn't blocking WebSocket
-```
-
-### Authentication Issues
-```
-Error: Invalid token or unauthorized
-Solution:
-1. Clear localStorage in browser console
-2. Re-login to get fresh token
-3. Ensure .env has correct JWT_SECRET
+1. Ensure GOOGLE_API_KEY is properly set in server .env
+2. Verify API key from Google AI Studio is valid
 ```
 
 ## 🔒 Security Features
@@ -360,29 +341,31 @@ Solution:
 - **CORS Protection**: Configured for allowed origins
 - **Protected Routes**: Middleware validation
 - **Input Validation**: Server-side validation
+- **Google Authentication**: Safe and reliable Google OAuth integration
 
 ## 📝 Environment Variables
 
 Create `.env` in server directory:
 
-```
+```env
 MONGODB_URI=mongodb://localhost:27017/student-doubt-resolution
 JWT_SECRET=your_jwt_secret_key_change_in_production_12345
 PORT=5000
+GOOGLE_API_KEY=your_gemini_api_key_here
 ```
 
 ## 🚀 Deployment
 
-### Backend (Heroku)
-1. Install Heroku CLI
+### Backend (Heroku / Render)
+1. Install Heroku CLI or link to Render
 2. `heroku create app-name`
-3. `heroku config:set MONGODB_URI=your_atlas_uri`
+3. `heroku config:set MONGODB_URI=your_atlas_uri GOOGLE_API_KEY=key`
 4. `git push heroku main`
 
-### Frontend (Vercel/Netlify)
+### Frontend (Vercel / Netlify)
 1. Build: `npm run build`
 2. Deploy built folder to Vercel or Netlify
-3. Set environment variables for API URL
+3. Set environment variables for API URL and Google OAuth Client ID
 
 ## 📞 Support & Contact
 

@@ -14,7 +14,14 @@ const chatSchema = new mongoose.Schema(
     },
     message: {
       type: String,
-      required: true,
+      default: '',
+    },
+    attachment: {
+      fileUrl: String,
+      fileName: String,
+      fileType: String,
+      mimeType: String,
+      fileSize: Number,
     },
     timestamp: {
       type: Date,

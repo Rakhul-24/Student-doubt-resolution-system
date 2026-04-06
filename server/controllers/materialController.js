@@ -1,35 +1,80 @@
 import Material from '../models/Material.js';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = 'uploads/materials/';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // increased limit to 50MB for video
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /pdf|doc|docx|ppt|pptx|jpg|jpeg|png|gif|mp4|webm|ogg/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Allowed: PDF, Docs, PPT, Images, Video (MP4/WebM).'));
+    }
+  }
+}).single('file');
 
 export const uploadMaterial = async (req, res) => {
-  try {
-    const { title, description, subject, topic, fileUrl, fileType } = req.body;
-
-    if (!title || !subject || !fileUrl) {
-      return res.status(400).json({ error: 'Title, subject, and file URL are required' });
+  console.log('Upload material called');
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
     }
 
-    const material = new Material({
-      staffId: req.userId,
-      title,
-      description,
-      subject,
-      topic,
-      fileUrl,
-      fileType: fileType || 'pdf',
-    });
+    try {
+      const { title, description, subject, topic } = req.body;
+      const fileUrl = req.file ? `/uploads/materials/${req.file.filename}` : null;
 
-    await material.save();
-    await material.populate('staffId', 'name email subject');
+      if (!title || !subject || !fileUrl) {
+        console.log('Validation failed:', { title, subject, fileUrl });
+        return res.status(400).json({ error: 'Title, subject, and file are required. Please select a file to upload.' });
+      }
 
-    res.status(201).json({
-      success: true,
-      message: 'Material uploaded successfully',
-      material,
-    });
-  } catch (error) {
-    console.error('Upload material error:', error);
-    res.status(500).json({ error: 'Failed to upload material' });
-  }
+      const fileType = path.extname(req.file.originalname).toLowerCase().replace('.', '');
+
+      const material = new Material({
+        staffId: req.userId,
+        title,
+        description,
+        subject,
+        topic,
+        fileUrl,
+        fileType: fileType || 'pdf',
+      });
+
+      await material.save();
+      await material.populate('staffId', 'name email subject');
+
+      res.status(201).json({
+        success: true,
+        message: 'Material uploaded successfully',
+        material,
+      });
+    } catch (error) {
+      console.error('Upload material error:', error);
+      res.status(500).json({ error: 'Failed to upload material' });
+    }
+  });
 };
 
 export const getAllMaterials = async (req, res) => {

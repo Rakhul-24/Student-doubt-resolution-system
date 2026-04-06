@@ -1,5 +1,3 @@
-import Chat from './models/Chat.js';
-
 const userSockets = {}; // Map to store user socket connections
 
 export const handleSocketConnection = (socket, io) => {
@@ -15,35 +13,24 @@ export const handleSocketConnection = (socket, io) => {
   // Handle sending message
   socket.on('send_message', async (data) => {
     try {
-      const { senderId, receiverId, message } = data;
-
-      // Save message to database
-      const chatMessage = new Chat({
+      const { senderId, receiverId, message, attachment, timestamp, _id } = data;
+      const messagePayload = {
+        _id,
         senderId,
         receiverId,
         message,
-        timestamp: new Date(),
-      });
-
-      await chatMessage.save();
+        attachment: attachment || null,
+        timestamp: timestamp || new Date().toISOString(),
+      };
 
       // Emit to receiver
       const receiverSocketId = userSockets[receiverId];
       if (receiverSocketId) {
-        io.to(receiverSocketId).emit('receive_message', {
-          senderId,
-          message,
-          timestamp: chatMessage.timestamp,
-        });
+        io.to(receiverSocketId).emit('receive_message', messagePayload);
       }
 
-      // Emit confirmation to sender
-      socket.emit('message_sent', {
-        _id: chatMessage._id,
-        senderId,
-        message,
-        timestamp: chatMessage.timestamp,
-      });
+      // Emit confirmation to sender without re-persisting the message.
+      socket.emit('message_sent', messagePayload);
     } catch (error) {
       console.error('Socket error:', error);
       socket.emit('error', { message: 'Failed to send message' });

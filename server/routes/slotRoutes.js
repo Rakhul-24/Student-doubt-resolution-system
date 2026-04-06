@@ -1,28 +1,28 @@
 import express from 'express';
 import {
-  createSlot,
+  createSlotForDoubt,
   getStaffSlots,
-  getAvailableSlots,
   getStudentSlots,
-  bookSlot,
-  updateSlot,
+  getSlotByLink,
+  joinSlotViaLink,
+  confirmSlot,
   deleteSlot,
-  cancelBooking,
 } from '../controllers/slotController.js';
 import { authMiddleware, staffOnly, studentOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+// Common: Link Preview
+router.get('/link/:linkId', authMiddleware, getSlotByLink);
+
 // Staff routes
-router.post('/create', authMiddleware, staffOnly, createSlot);
+router.post('/create-for-doubt', authMiddleware, staffOnly, createSlotForDoubt);
 router.get('/staff', authMiddleware, staffOnly, getStaffSlots);
-router.put('/:slotId', authMiddleware, staffOnly, updateSlot);
 router.delete('/:slotId', authMiddleware, staffOnly, deleteSlot);
 
 // Student routes
-router.get('/available', authMiddleware, studentOnly, getAvailableSlots);
 router.get('/my-slots', authMiddleware, studentOnly, getStudentSlots);
-router.post('/book', authMiddleware, studentOnly, bookSlot);
-router.post('/:slotId/cancel', authMiddleware, studentOnly, cancelBooking);
+router.post('/join/:linkId', authMiddleware, studentOnly, joinSlotViaLink);
+router.put('/:slotId/confirm', authMiddleware, studentOnly, confirmSlot);
 
 export default router;
