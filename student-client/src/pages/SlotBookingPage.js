@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { slotAPI } from '../services/api';
+import { slotAPI, SOCKET_URL } from '../services/api';
 import io from 'socket.io-client';
 
 const SlotBookingPage = () => {
@@ -16,7 +16,7 @@ const SlotBookingPage = () => {
   }, []);
 
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000', {
+    socketRef.current = io(SOCKET_URL, {
       auth: {
         token: sessionStorage.getItem('token') || localStorage.getItem('token'),
       },

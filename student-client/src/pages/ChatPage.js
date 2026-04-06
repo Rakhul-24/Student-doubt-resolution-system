@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
-import { chatAPI, authAPI } from '../services/api';
+import { chatAPI, authAPI, SOCKET_URL, buildServerUrl } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import io from 'socket.io-client';
 import ReactMarkdown from 'react-markdown';
@@ -92,8 +92,7 @@ const ChatPage = () => {
 
   const getAttachmentUrl = useCallback((attachment) => {
     if (!attachment?.fileUrl) return '';
-    if (attachment.fileUrl.startsWith('http')) return attachment.fileUrl;
-    return `http://localhost:5000${attachment.fileUrl}`;
+    return buildServerUrl(attachment.fileUrl);
   }, []);
 
   const isImageAttachment = (attachment) =>
@@ -133,7 +132,7 @@ const ChatPage = () => {
   }, [dedupeClientMessages]);
 
   useEffect(() => {
-    socket.current = io('http://localhost:5000', {
+    socket.current = io(SOCKET_URL, {
       auth: {
         token: sessionStorage.getItem('token') || localStorage.getItem('token'),
       },

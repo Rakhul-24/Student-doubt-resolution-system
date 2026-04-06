@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-route
 import ReactMarkdown from 'react-markdown';
 import io from 'socket.io-client';
 import { AuthContext } from '../context/AuthContext';
-import { authAPI, chatAPI, doubtAPI, slotAPI } from '../services/api';
+import { authAPI, chatAPI, doubtAPI, slotAPI, SOCKET_URL } from '../services/api';
 
 
 const STAFF_TABS = ['ask', 'doubts', 'slots', 'join'];
@@ -298,7 +298,7 @@ const AskDoubtPage = () => {
   }, [fetchData, fetchStaff]);
 
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000', {
+    socketRef.current = io(SOCKET_URL, {
       auth: {
         token: sessionStorage.getItem('token') || localStorage.getItem('token'),
       },

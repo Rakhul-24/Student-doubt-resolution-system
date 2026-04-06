@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { materialAPI } from '../services/api';
+import { materialAPI, buildServerUrl } from '../services/api';
 
 // Helper Icons
 const getFileIcon = (type) => {
@@ -80,6 +80,7 @@ const MaterialsPage = () => {
     selectedSubject === 'All'
       ? materials
       : materials.filter((material) => material.subject === selectedSubject);
+  const viewingMaterialUrl = viewingMaterial ? buildServerUrl(viewingMaterial.fileUrl) : '';
 
   return (
     <>
@@ -179,7 +180,7 @@ const MaterialsPage = () => {
               <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{viewingMaterial.subject}</span>
             </div>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <a href={`http://localhost:5000${viewingMaterial.fileUrl}`} target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.1)', color: 'inherit', border: 'none', fontSize: '0.85rem' }}>
+              <a href={viewingMaterialUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.1)', color: 'inherit', border: 'none', fontSize: '0.85rem' }}>
                  Open in New Tab
               </a>
               <button 
@@ -190,14 +191,14 @@ const MaterialsPage = () => {
           </div>
           <div style={{ flex: 1, padding: '2rem', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
              {['jpg', 'jpeg', 'png', 'gif'].includes(viewingMaterial.fileType?.toLowerCase()) ? (
-                <img src={`http://localhost:5000${viewingMaterial.fileUrl}`} alt={viewingMaterial.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                <img src={viewingMaterialUrl} alt={viewingMaterial.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
              ) : ['mp4', 'webm', 'ogg'].includes(viewingMaterial.fileType?.toLowerCase()) ? (
                 <video controls style={{ maxWidth: '100%', maxHeight: '100%', background: 'black', borderRadius: '12px' }}>
-                  <source src={`http://localhost:5000${viewingMaterial.fileUrl}`} type={`video/${viewingMaterial.fileType}`} />
+                  <source src={viewingMaterialUrl} type={`video/${viewingMaterial.fileType}`} />
                   Your browser does not support the video tag.
                 </video>
              ) : (
-                <iframe src={`http://localhost:5000${viewingMaterial.fileUrl}`} title={viewingMaterial.title} style={{ width: '100%', height: '100%', border: 'none', background: 'white', borderRadius: '12px' }} />
+                <iframe src={viewingMaterialUrl} title={viewingMaterial.title} style={{ width: '100%', height: '100%', border: 'none', background: 'white', borderRadius: '12px' }} />
              )}
           </div>
         </div>

@@ -1,6 +1,23 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const DEFAULT_SERVER_BASE_URL = 'https://student-doubt-resolution-system.onrender.com';
+
+export const SERVER_BASE_URL =
+  process.env.REACT_APP_SERVER_URL ||
+  process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '') ||
+  DEFAULT_SERVER_BASE_URL;
+
+export const API_BASE_URL =
+  process.env.REACT_APP_API_URL || `${SERVER_BASE_URL}/api`;
+
+export const SOCKET_URL =
+  process.env.REACT_APP_SOCKET_URL || SERVER_BASE_URL;
+
+export const buildServerUrl = (path = '') => {
+  if (!path) return SERVER_BASE_URL;
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${SERVER_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+};
 
 const api = axios.create({
   baseURL: API_BASE_URL,
