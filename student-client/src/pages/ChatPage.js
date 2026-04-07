@@ -2,7 +2,6 @@ import React, { useState, useEffect, useContext, useRef, useCallback } from 'rea
 import { chatAPI, authAPI, SOCKET_URL, buildServerUrl } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import io from 'socket.io-client';
-import ReactMarkdown from 'react-markdown';
 
 // SVG Icons
 const SearchIcon = () => (
@@ -19,20 +18,14 @@ const SendIcon = () => (
 
 const AttachmentIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-    <path d="M6.354 7.5H5.5a3.5 3.5 0 1 0 0 7h5a4.5 4.5 0 0 0 0-9H6.707a2.5 2.5 0 0 0 0 5H11V9H6.707a1 1 0 0 1 0-2H10.5a3 3 0 0 1 0 6h-5a2 2 0 1 1 0-4h.854v-1.5Z"/>
+    <path d="M6.354 7.5H5.5a3.5 3.5 0 1 0 0 7h5a4.5 4.5 0 0 0 0-9H6.707a2.5 2.5 0 0 0 0 5H11V9H6.707a1 1 0 0 1 0-2H10.5a3 3 0 0 1 0 6h-5a2 2 0 1 1 0-4h.854v-1.5Z" />
   </svg>
 );
 
 const TrashIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-    <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
-  </svg>
-);
-
-const BellIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-    <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2Zm.104-14.995a1 1 0 1 0-2.208 0A5.002 5.002 0 0 0 3 5c0 1.098-.5 5.5-1.5 6.5h13C13.5 10.5 13 6.098 13 5a5.002 5.002 0 0 0-4.896-4.995Z"/>
+    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+    <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
   </svg>
 );
 
@@ -107,29 +100,30 @@ const ChatPage = () => {
   };
 
   const handleReceiveMessage = useCallback((data) => {
+    const incomingMessage = normalizeMessage(data);
     const activeUserId = selectedUserRef.current?._id;
-    const isActiveChat = data.senderId === activeUserId;
+    const isActiveChat = incomingMessage.senderId === activeUserId;
 
     if (isActiveChat) {
-      setMessages((prev) => dedupeClientMessages([...prev, data]));
+      setMessages((prev) => dedupeClientMessages([...prev, incomingMessage]));
       return;
     }
 
     setUnreadCounts((prev) => ({
       ...prev,
-      [data.senderId]: (prev[data.senderId] || 0) + 1,
+      [incomingMessage.senderId]: (prev[incomingMessage.senderId] || 0) + 1,
     }));
 
-    const sender = usersRef.current.find((item) => item._id === data.senderId);
+    const sender = usersRef.current.find((item) => item._id === incomingMessage.senderId);
     const senderName = sender?.name || 'New message';
     setNotification({
-      senderId: data.senderId,
+      senderId: incomingMessage.senderId,
       senderName,
       senderMeta: sender?.subject || (sender?.role === 'staff' ? 'Staff' : 'Student'),
-      preview: data.message,
+      preview: incomingMessage.message,
       tone: 'message',
     });
-  }, [dedupeClientMessages]);
+  }, [dedupeClientMessages, normalizeMessage]);
 
   useEffect(() => {
     socket.current = io(SOCKET_URL, {
@@ -167,11 +161,10 @@ const ChatPage = () => {
     }
   }, [messages]);
 
-
-
   useEffect(() => {
     fetchUsers();
     fetchUnreadCounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUnreadCounts = async () => {
@@ -197,18 +190,15 @@ const ChatPage = () => {
   const fetchUsers = async () => {
     try {
       const res = await authAPI.getAllUsers();
-      // Filter out self
       let userList = res.data.users || [];
       if (user?._id) {
-        userList = userList.filter(u => u._id !== user._id);
+        userList = userList.filter((item) => item._id !== user._id);
       }
       setUsers(userList);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch users');
     }
   };
-
-
 
   const getContactsEmptyMessage = () => {
     if (searchTerm.trim()) {
@@ -222,12 +212,12 @@ const ChatPage = () => {
     setSelectedUser(targetUser);
     setNotification(null);
     clearPendingAttachment();
-    
+
     setUnreadCounts((prev) => ({ ...prev, [targetUser._id]: 0 }));
     try {
       await chatAPI.markAsRead(targetUser._id);
-    } catch (e) {
-      console.error('Failed to mark as read', e);
+    } catch (err) {
+      console.error('Failed to mark as read', err);
     }
 
     setLoading(true);
@@ -245,7 +235,9 @@ const ChatPage = () => {
     if ((!newMessage.trim() && !selectedAttachment) || !selectedUser) return;
 
     try {
-      const outgoingText = newMessage.trim() || (selectedAttachment ? `Shared an attachment: ${selectedAttachment.name}` : '');
+      const outgoingText =
+        newMessage.trim() ||
+        (selectedAttachment ? `Shared an attachment: ${selectedAttachment.name}` : '');
       const payload = new FormData();
       payload.append('receiverId', selectedUser._id);
       payload.append('message', outgoingText);
@@ -257,11 +249,7 @@ const ChatPage = () => {
       const savedMessage = normalizeMessage(response.data.chat);
 
       socket.current.emit('send_message', savedMessage);
-
-      setMessages((prev) => dedupeClientMessages([
-        ...prev,
-        savedMessage,
-      ]));
+      setMessages((prev) => dedupeClientMessages([...prev, savedMessage]));
       setNewMessage('');
       clearPendingAttachment();
     } catch (err) {
@@ -271,7 +259,7 @@ const ChatPage = () => {
 
   const handleClearChat = async () => {
     if (!selectedUser) return;
-    
+
     if (window.confirm(`Are you sure you want to clear the chat with ${selectedUser.name}? This cannot be undone.`)) {
       try {
         await chatAPI.clearChatHistory(selectedUser._id);
@@ -340,7 +328,7 @@ const ChatPage = () => {
                 </div>
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{notification.senderName}</div>
                 <div style={{ marginTop: '0.5rem' }}>{truncateNotificationPreview(notification.preview)}</div>
-                <button 
+                <button
                   onClick={handleOpenNotification}
                   style={{ marginTop: '0.8rem', background: 'var(--accent-light)', color: 'var(--accent-primary)', padding: '0.5rem 1rem', borderRadius: '999px', fontSize: '0.85rem', fontWeight: 'bold' }}
                 >
@@ -365,7 +353,7 @@ const ChatPage = () => {
                   style={{ width: '100%', paddingLeft: '2.5rem', borderRadius: '999px' }}
                   placeholder="Search staff or subjects..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(event) => setSearchTerm(event.target.value)}
                 />
               </div>
             </div>
@@ -374,32 +362,30 @@ const ChatPage = () => {
               {filteredUsers.length === 0 ? (
                 <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>{getContactsEmptyMessage()}</div>
               ) : (
-                filteredUsers.map((member) => {
-                  return (
-                    <div
-                      key={member._id}
-                      className={`chat-contact ${selectedUser?._id === member._id ? 'active' : ''}`}
-                      onClick={() => handleSelectUser(member)}
-                    >
-                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', width: '100%' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-surface-solid)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)', fontWeight: 'bold' }}>
-                          {getInitials(member.name)}
-                        </div>
-                        <div style={{ flex: 1, overflow: 'hidden' }}>
-                          <div style={{ fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'inherit' }}>
-                            {member.name}
-                          </div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {member.subject || (member.role === 'staff' ? 'Staff' : 'Student')}
-                          </div>
-                        </div>
-                        {unreadCounts[member._id] > 0 && (
-                          <div className="nav-unread">{unreadCounts[member._id]}</div>
-                        )}
+                filteredUsers.map((member) => (
+                  <div
+                    key={member._id}
+                    className={`chat-contact ${selectedUser?._id === member._id ? 'active' : ''}`}
+                    onClick={() => handleSelectUser(member)}
+                  >
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', width: '100%' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-surface-solid)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)', fontWeight: 'bold' }}>
+                        {getInitials(member.name)}
                       </div>
+                      <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <div style={{ fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'inherit' }}>
+                          {member.name}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {member.subject || (member.role === 'staff' ? 'Staff' : 'Student')}
+                        </div>
+                      </div>
+                      {unreadCounts[member._id] > 0 && (
+                        <div className="nav-unread">{unreadCounts[member._id]}</div>
+                      )}
                     </div>
-                  );
-                })
+                  </div>
+                ))
               )}
             </div>
           </aside>
@@ -411,7 +397,7 @@ const ChatPage = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <button style={{ color: 'var(--text-muted)' }} onClick={() => setSelectedUser(null)}>
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                        <path fillRule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                        <path fillRule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z" />
                       </svg>
                     </button>
                     <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-surface-solid)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)', fontWeight: 'bold' }}>
@@ -446,7 +432,7 @@ const ChatPage = () => {
                       return (
                         <div key={index} style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column' }}>
                           <div className={isOutgoing ? 'message-outgoing message-bubble' : 'message-incoming message-bubble'}>
-                            <div>{msg.message}</div>
+                            {msg.message && <div>{msg.message}</div>}
                             {msg.attachment && (
                               <div style={{ marginTop: '0.5rem', background: 'var(--bg-surface-solid)', color: 'var(--text-main)', padding: '0.5rem', borderRadius: '8px' }}>
                                 {isImageAttachment(msg.attachment) ? (
@@ -472,7 +458,7 @@ const ChatPage = () => {
                   <div ref={messagesEndRef} />
                 </div>
 
-                  <div className="island-footer">
+                <div className="island-footer">
                   {selectedAttachment && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-surface-solid)', padding: '0.5rem 1rem', borderRadius: '8px', marginBottom: '0.5rem', width: 'fit-content' }}>
                       <span style={{ fontSize: '0.85rem' }}>{selectedAttachment.name}</span>
@@ -480,25 +466,25 @@ const ChatPage = () => {
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                      <button onClick={() => attachmentInputRef.current?.click()} style={{ color: 'var(--text-muted)', padding: '0.5rem' }}>
-                        <AttachmentIcon />
-                      </button>
+                    <button onClick={() => attachmentInputRef.current?.click()} style={{ color: 'var(--text-muted)', padding: '0.5rem' }}>
+                      <AttachmentIcon />
+                    </button>
                     <input
                       type="text"
                       className="form-input"
                       style={{ flex: 1, borderRadius: '999px', background: 'rgba(15, 23, 42, 0.4)' }}
                       placeholder="Type your message..."
                       value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                      onChange={(event) => setNewMessage(event.target.value)}
+                      onKeyDown={(event) => event.key === 'Enter' && handleSendMessage()}
                     />
-                      <input
-                        ref={attachmentInputRef}
-                        type="file"
-                        style={{ display: 'none' }}
-                        accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif,.webp"
-                        onChange={handleAttachmentChange}
-                      />
+                    <input
+                      ref={attachmentInputRef}
+                      type="file"
+                      style={{ display: 'none' }}
+                      accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif,.webp"
+                      onChange={handleAttachmentChange}
+                    />
                     <button
                       className="btn btn-primary"
                       style={{ borderRadius: '50%', width: '45px', height: '45px', padding: 0 }}
@@ -524,4 +510,3 @@ const ChatPage = () => {
 };
 
 export default ChatPage;
-

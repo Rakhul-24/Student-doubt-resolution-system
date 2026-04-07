@@ -4,9 +4,9 @@ import { AuthContext } from '../context/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
 
 const StudentLogin = () => {
-  const { login, googleLogin, googleRegister } = useContext(AuthContext);
+  const { googleLogin, googleRegister } = useContext(AuthContext);
   const navigate = useNavigate();
-  
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -35,7 +35,7 @@ const StudentLogin = () => {
 
     try {
       const res = await googleLogin({ token: credentialResponse.credential, role: 'student' });
-      
+
       if (res?.requiresRegistration) {
         setRequiresRegistration(true);
         setRegistrationData((prev) => ({
@@ -171,7 +171,7 @@ const StudentLogin = () => {
             <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '1.05rem', lineHeight: '1.6' }}>
               Welcome back! Please sign in using your Google account to access your dashboard.
             </p>
-            
+
             <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
@@ -184,7 +184,7 @@ const StudentLogin = () => {
                 width="300px"
               />
             </div>
-            
+
             <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }}>
               <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
               <span style={{ padding: '0 1rem', fontSize: '0.85rem' }}>Secure SSO Login</span>
