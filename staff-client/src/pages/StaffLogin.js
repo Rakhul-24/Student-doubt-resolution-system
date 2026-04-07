@@ -4,7 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
 
 const StaffLogin = () => {
-  const { login, googleLogin, googleRegister } = useContext(AuthContext);
+  const { googleLogin, googleRegister } = useContext(AuthContext);
   const navigate = useNavigate();
   
   const [error, setError] = useState('');
