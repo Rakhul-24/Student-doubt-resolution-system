@@ -5,9 +5,11 @@ export const handleSocketConnection = (socket, io) => {
 
   // Handle user join
   socket.on('user_join', (userId) => {
-    userSockets[userId] = socket.id;
-    socket.join(userId);
-    io.emit('user_online', { userId, status: 'online' });
+    if (!userId) return;
+    const uid = String(userId);
+    userSockets[uid] = socket.id;
+    socket.join(uid);
+    io.emit('user_online', { userId: uid, status: 'online' });
   });
 
   // Handle sending message
@@ -23,8 +25,12 @@ export const handleSocketConnection = (socket, io) => {
         timestamp: timestamp || new Date().toISOString(),
       };
 
+      const rid = String(receiverId);
       // Emit to receiver
-      io.to(receiverId).emit('receive_message', messagePayload);
+      io.to(rid).emit('receive_message', messagePayload);
+      if (userSockets[rid]) {
+        io.to(userSockets[rid]).emit('receive_message', messagePayload);
+      }
 
       // Emit confirmation to sender without re-persisting the message.
       socket.emit('message_sent', messagePayload);
@@ -49,7 +55,8 @@ export const handleSocketConnection = (socket, io) => {
   // Handle typing indicator
   socket.on('user_typing', (data) => {
     const { senderId, receiverId } = data;
-    const receiverSocketId = userSockets[receiverId];
+    const rid = String(receiverId);
+    const receiverSocketId = userSockets[rid];
     if (receiverSocketId) {
       io.to(receiverSocketId).emit('user_typing_status', { senderId });
     }
@@ -58,7 +65,8 @@ export const handleSocketConnection = (socket, io) => {
   // Handle stop typing
   socket.on('user_stop_typing', (data) => {
     const { senderId, receiverId } = data;
-    const receiverSocketId = userSockets[receiverId];
+    const rid = String(receiverId);
+    const receiverSocketId = userSockets[rid];
     if (receiverSocketId) {
       io.to(receiverSocketId).emit('user_stop_typing_status', { senderId });
     }
