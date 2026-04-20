@@ -4,16 +4,20 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
 const chatUploadStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = 'uploads/chat/';
+    const uploadDir = path.join(__dirname, '../uploads/chat');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -266,12 +270,8 @@ If you cannot adequately answer a question or if it requires personalized attent
     
     if (error.message === 'Google API key not configured') {
       fallbackResponse = "The AI assistant is not configured yet. Please consult with a staff member for assistance.";
-    } else if (error.status === 401 || error.message.includes('API_KEY')) {
-      fallbackResponse = "There seems to be an authentication issue with the AI service. Please try again later or consult with a staff member.";
-    } else if (error.status === 429 || error.message.includes('quota')) {
-      fallbackResponse = "The AI service is currently busy. Please try again in a moment or consult with a staff member.";
-    } else if (error.status === 404 || error.status === 400) {
-      fallbackResponse = "The configured AI model is unavailable. Please contact support or consult with a staff member.";
+    } else if (error.message) {
+      fallbackResponse = `AI Service Error: ${error.message}`;
     }
     
     res.status(500).json({ 

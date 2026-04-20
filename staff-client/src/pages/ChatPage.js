@@ -101,27 +101,28 @@ const ChatPage = () => {
   };
 
   const handleReceiveMessage = useCallback((data) => {
+    const incomingMessage = normalizeMessage(data);
     const activeUserId = selectedUserRef.current?._id;
 
-    if (data.senderId === activeUserId) {
-      setMessages((prev) => dedupeClientMessages([...prev, data]));
+    if (incomingMessage.senderId === activeUserId) {
+      setMessages((prev) => dedupeClientMessages([...prev, incomingMessage]));
       return;
     }
 
     setUnreadCounts((prev) => ({
       ...prev,
-      [data.senderId]: (prev[data.senderId] || 0) + 1,
+      [incomingMessage.senderId]: (prev[incomingMessage.senderId] || 0) + 1,
     }));
 
-    const sender = usersRef.current.find((item) => item._id === data.senderId);
+    const sender = usersRef.current.find((item) => item._id === incomingMessage.senderId);
     setNotification({
-      senderId: data.senderId,
+      senderId: incomingMessage.senderId,
       senderName: sender?.name || 'Student',
       senderMeta: sender?.email || 'Student account',
-      preview: data.message,
+      preview: incomingMessage.message,
       tone: 'message',
     });
-  }, [dedupeClientMessages]);
+  }, [dedupeClientMessages, normalizeMessage]);
 
   useEffect(() => {
     socket.current = io(SOCKET_URL, {

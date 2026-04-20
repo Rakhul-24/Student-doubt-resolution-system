@@ -24,10 +24,7 @@ export const handleSocketConnection = (socket, io) => {
       };
 
       // Emit to receiver
-      const receiverSocketId = userSockets[receiverId];
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit('receive_message', messagePayload);
-      }
+      io.to(receiverId).emit('receive_message', messagePayload);
 
       // Emit confirmation to sender without re-persisting the message.
       socket.emit('message_sent', messagePayload);
