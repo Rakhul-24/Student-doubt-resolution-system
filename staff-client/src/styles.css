@@ -29,6 +29,29 @@
   --status-warning: #f59e0b;
 }
 
+[data-theme="dark"] {
+  /* Premium Emerald Dark Theme */
+  --bg-primary: #022c22; /* Emerald 950 base */
+  --bg-secondary: #064e3b; /* Emerald 900 */
+  --bg-surface: #065f46; /* Emerald 800 */
+  --bg-surface-solid: #064e3b;
+
+  --text-main: #ecfdf5; /* Emerald 50 */
+  --text-muted: #6ee7b7; /* Emerald 300 */
+
+  /* Keep accents but adjust blending light backgrounds for dark mode */
+  --accent-light: rgba(16, 185, 129, 0.25);
+  --accent-blob: rgba(16, 185, 129, 0.25);
+
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
+
+  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
